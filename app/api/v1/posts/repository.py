@@ -1,3 +1,4 @@
+from locale import normalize
 from math import ceil
 from typing import List, Optional, Tuple
 
@@ -79,8 +80,9 @@ class PostRepository:
         return author_obj
 
     def ensure_tag(self, tag: str) -> TagORM:
+        normalized_tag = tag.strip().lower()
         tag_obj = self.db.execute(
-            select(TagORM).where(TagORM.name.ilike(tag))
+            select(TagORM).where(func.lower(TagORM.name) == normalized_tag)
         ).scalar_one_or_none()
 
         if not tag_obj:
@@ -103,8 +105,11 @@ class PostRepository:
         )
 
         tag_objs = []
-        for tag in tags:
-            tag_objs.append(self.ensure_tag(tag["name"]))
+        names = (
+            tags[0]["name"].split(",") if "," in tags[0]["name"] else [tags[0]["name"]]
+        )
+        for name in names:
+            tag_objs.append(self.ensure_tag(name.strip()))
 
         new_post = PostORM(
             title=title,
