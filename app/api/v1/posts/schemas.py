@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Annotated, List, Literal, Optional
 
+from fastapi import Form
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
@@ -27,6 +28,7 @@ class PostBase(BaseModel):
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list)
     author: Optional[Author] = None
+    image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -49,6 +51,17 @@ class PostCreate(BaseModel):
 
     tags: Optional[List[Tag]] = Field(default_factory=list)
     # author: Optional[Author] = None
+
+    # Para recibir datos de un formulario multipart/form-data en vez de JSON, se define un método de clase que utiliza Form() para cada campo
+    @classmethod
+    def as_form(
+        cls,
+        title: Annotated[str, Form(min_length=3)],
+        content: Annotated[str, Form(min_length=10)],
+        tags: Annotated[Optional[List[str]], Form()] = None,
+    ):
+        tag_objects = [Tag(name=tag) for tag in (tags or [])]
+        return cls(title=title, content=content, tags=tag_objects)
 
     @field_validator("title")
     @classmethod

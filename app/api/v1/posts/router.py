@@ -1,13 +1,23 @@
 import asyncio
 from math import ceil
 import time
-from typing import List, Literal, Optional, Union
+from typing import Annotated, List, Literal, Optional, Union
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Path,
+    Query,
+    UploadFile,
+    status,
+)
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.services.file_storage import save_upload_image
 from .schemas import PostPublic, PaginatedPost, PostCreate, PostUpdate, PostSummary
 from .repository import PostRepository
 from app.core.security import oauth2_scheme, get_current_user
@@ -134,15 +144,25 @@ def get_post(
     response_description="Post creado exitosamente",
 )
 def create_post(
-    post: PostCreate,
+    post: Annotated[
+        PostCreate, Depends(PostCreate.as_form)
+    ],  # Para recibir datos de un formulario multipart/form-data en vez de JSON
+    image: Optional[UploadFile] = File(
+        None, description="Optional image file to upload for the post"
+    ),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
+    saved = None
+    if image is not None:
+        saved = save_upload_image(image)
+
     new_post = PostRepository(db).create_post(
         title=post.title,
         content=post.content,
         author=current_user,
         tags=[tag.model_dump() for tag in post.tags],
+        image_url=saved["url"] if saved else None,
     )
 
     try:

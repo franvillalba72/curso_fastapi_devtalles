@@ -91,7 +91,12 @@ class PostRepository:
         return tag_obj
 
     def create_post(
-        self, title: str, content: str, author: Optional[dict], tags: List[dict]
+        self,
+        title: str,
+        content: str,
+        author: Optional[dict],
+        tags: List[dict],
+        image_url: Optional[str],
     ) -> PostORM:
         author_obj = (
             self.ensure_author(author["username"], author["email"]) if author else None
@@ -102,7 +107,11 @@ class PostRepository:
             tag_objs.append(self.ensure_tag(tag["name"]))
 
         new_post = PostORM(
-            title=title, content=content, author=author_obj, tags=tag_objs
+            title=title,
+            content=content,
+            image_url=image_url,
+            author=author_obj,
+            tags=tag_objs,
         )
 
         self.db.add(new_post)

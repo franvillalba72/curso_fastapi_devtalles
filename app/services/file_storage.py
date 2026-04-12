@@ -1,0 +1,72 @@
+import os
+import shutil  # Para tener permisos para mover y guardar archivos
+import uuid
+
+from fastapi import HTTPException, UploadFile, status
+
+MEDIA_DIR = "app/media"
+# ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "application/pdf"]
+ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png"]
+MAX_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))  # Tamaño máximo en MB, por defecto 10 MB
+CHUNKS = 1024 * 1024  # 1 MB
+
+
+def ensure_media_dir() -> None:
+    os.makedirs(MEDIA_DIR, exist_ok=True)
+
+
+def save_upload_image(file: UploadFile) -> dict:
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only JPEG and PNG files are allowed",
+        )
+
+    ensure_media_dir()
+    ext = os.path.splitext(file.filename)[1]
+    unique_filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = os.path.join(MEDIA_DIR, unique_filename)
+
+    # Para contar los chunks leídos y sus tamaños, envolvemos el file.file en una clase personalizada
+    # class _ChunkCounter:
+    #     def __init__(self, f):
+    #         self._f = f
+    #         self.calls = 0
+    #         self.sizes = []
+
+    #     def read(self, n=-1):
+    #         data = self._f.read(n)
+    #         if data:
+    #             self.calls += 1
+    #             self.sizes.append(len(data))
+    #         return data
+
+    #     def __getattr__(self, name):  # delega cualquier otro atributo
+    #         return getattr(self._f, name)
+
+    # reader = _ChunkCounter(file.file)
+
+    with open(file_path, "wb") as buffer:
+        # shutil.copyfileobj(reader, buffer, length=CHUNKS)
+        shutil.copyfileobj(file.file, buffer, length=CHUNKS)
+
+    # Vamos a limitar el tamaño del archivo
+    file_size_mb = os.path.getsize(file_path) / (CHUNKS)
+    if file_size_mb > MAX_MB:
+        os.remove(file_path)
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File size exceeds the maximum limit of {MAX_MB} MB",
+        )
+
+    return {
+        "filename": unique_filename,
+        "content_type": file.content_type,
+        "url": f"/media/{unique_filename}",
+        "size_mb": file_size_mb,
+        # "chunk_size_used": CHUNKS,
+        # "chunk_calls": reader.calls,
+        # "chunk_sizes": reader.sizes[
+        #     :5
+        # ],
+    }
