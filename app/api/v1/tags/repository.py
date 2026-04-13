@@ -114,7 +114,7 @@ class TagRepository:
                 .join(PostORM, PostORM.id == post_tags.c.post_id)
                 .group_by(TagORM.id, TagORM.name)
                 .order_by(func.count(PostORM.id).desc(), func.lower(TagORM.name).asc())
-                .limit(1)
+                # .limit(1)
             )
             .mappings()  # Devuelve resultados como diccionarios en lugar de objetos ORM
             .first()  # Obtiene la primera fila del resultado o None si no hay resultados
