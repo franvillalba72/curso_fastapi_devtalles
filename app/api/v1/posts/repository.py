@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from app.models.author import AuthorORM
 from app.models.post import PostORM
 from app.models.tag import TagORM
+from app.models.user import UserORM
 
 
 class PostRepository:
@@ -96,12 +97,12 @@ class PostRepository:
         self,
         title: str,
         content: str,
-        author: Optional[dict],
+        author: Optional[UserORM],
         tags: List[dict],
         image_url: Optional[str],
     ) -> PostORM:
         author_obj = (
-            self.ensure_author(author["username"], author["email"]) if author else None
+            self.ensure_author(author.full_name, author.email) if author else None
         )
 
         tag_objs = []

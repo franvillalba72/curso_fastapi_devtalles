@@ -1,3 +1,4 @@
+# Este script realiza múltiples solicitudes HTTP asíncronas a un endpoint que simula una operación de larga duración (sleep) y mide el tiempo que tarda cada solicitud en completarse, así como el tiempo total de pared para todas las solicitudes.
 import asyncio
 import httpx
 import time

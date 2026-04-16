@@ -17,11 +17,17 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.models.user import UserORM
 from app.services.file_storage import save_upload_image
 from .schemas import PostPublic, PaginatedPost, PostCreate, PostUpdate, PostSummary
 from .repository import PostRepository
-from app.core.security import oauth2_scheme, get_current_user
-import threading
+from app.core.security import (
+    oauth2_scheme,
+    get_current_user,
+    require_admin,
+    require_editor,
+    require_user,
+)
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
@@ -151,7 +157,10 @@ def create_post(
         None, description="Optional image file to upload for the post"
     ),
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    # current_user: UserORM = Depends(get_current_user),  # Con esto solo se requiere autenticación, pero no se verifica el rol
+    _editor: UserORM = Depends(
+        require_editor
+    ),  # Con esto se requiere que el usuario autenticado tenga al menos rol de editor para crear un post
 ):
     saved = None
     if image is not None:
@@ -160,7 +169,7 @@ def create_post(
     new_post = PostRepository(db).create_post(
         title=post.title,
         content=post.content,
-        author=current_user,
+        author=_editor,
         tags=[tag.model_dump() for tag in post.tags],
         image_url=saved["url"] if saved else None,
     )
@@ -195,7 +204,7 @@ def update_post(
     post_id: int,
     updated_post: PostUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    _editor: UserORM = Depends(require_editor),
 ):
 
     repository = PostRepository(db)
@@ -233,7 +242,7 @@ def update_post(
 def delete_post(
     post_id: int,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
+    _admin: UserORM = Depends(require_admin),
 ):
     repository = PostRepository(db)
     post = repository.get(post_id)

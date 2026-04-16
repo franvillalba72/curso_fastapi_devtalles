@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session
 from app.api.v1.tags.repository import TagRepository
 from app.api.v1.tags.schemas import TagCreate, TagPublic
 from app.core.db import get_db
-from app.core.security import get_current_user
+from app.core.security import (
+    get_current_user,
+    require_admin,
+    require_editor,
+    require_user,
+)
 
 
 router = APIRouter(prefix="/tags", tags=["tags"])
@@ -39,7 +44,7 @@ def list_tags(
     status_code=status.HTTP_201_CREATED,
 )
 def create_tag(
-    tag: TagCreate, db: Session = Depends(get_db), user=Depends(get_current_user)
+    tag: TagCreate, db: Session = Depends(get_db), _editor=Depends(require_editor)
 ):
     """
     Create a new tag. If a tag with the same name (case-insensitive) already exists, it will return the existing tag instead of creating a duplicate.
@@ -67,7 +72,7 @@ def update_tag(
     tag_id: int,
     updated_tag: TagCreate,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    _editor=Depends(require_editor),
 ):
     """
     Update the name of an existing tag. If the new name conflicts with another existing tag (case-insensitive), it will return a 400 error.
@@ -96,7 +101,7 @@ def update_tag(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete_tag(
-    tag_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)
+    tag_id: int, db: Session = Depends(get_db), _admin=Depends(require_admin)
 ):
     """
     Delete an existing tag by its ID. If the tag does not exist, it will return a 404 error.
