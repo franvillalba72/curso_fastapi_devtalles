@@ -32,22 +32,6 @@ from app.core.security import (
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 
-# @router.get("/sync")
-# def sync_endpoint():
-#     print(f"Thread {threading.get_ident()} - Starting sync endpoint")
-#     time.sleep(8)  # Simula una operación síncrona que tarda 8 segundos
-#     print(f"Thread {threading.get_ident()} - Ending sync endpoint")
-#     return {"message": "This is a synchronous endpoint"}
-
-
-# @router.get("/async")
-# async def async_endpoint():
-#     print(f"Thread {threading.get_ident()} - Starting async endpoint")
-#     await asyncio.sleep(8)  # Simula una operación asíncrona que tarda 8 segundos
-#     print(f"Thread {threading.get_ident()} - Ending async endpoint")
-#     return {"message": "This is an asynchronous endpoint"}
-
-
 @router.get("/", response_model=PaginatedPost)
 def list_posts(
     text: Optional[str] = Query(
@@ -172,6 +156,7 @@ def create_post(
         author=_editor,
         tags=[tag.model_dump() for tag in post.tags],
         image_url=saved["url"] if saved else None,
+        category_id=post.category_id,
     )
 
     try:

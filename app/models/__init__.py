@@ -1,5 +1,6 @@
-from .author import AuthorORM
 from .post import PostORM, post_tags
 from .tag import TagORM
+from .user import UserORM
+from .category import CategoryORM
 
-__all__ = ["AuthorORM", "PostORM", "TagORM", "post_tags"]
+__all__ = ["PostORM", "TagORM", "UserORM", "CategoryORM", "post_tags"]

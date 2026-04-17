@@ -7,13 +7,14 @@ Role = Literal["user", "editor", "admin"]
 class UserBase(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
-    model_config = ConfigDict(from_attributes=True)
 
 
 class UserPublic(UserBase):
     id: int
     role: Role
     is_active: bool
+
+    model_config = {"from_attributes": True}
 
 
 class UserCreate(BaseModel):

@@ -4,6 +4,10 @@ from typing import Annotated, List, Literal, Optional
 from fastapi import Form
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
+from app.api.v1.auth.schemas import UserBase, UserPublic
+from app.api.v1.categories.schemas import CategoryPublic
+from app.models import category
+
 
 # **************************** Pydantic Validation Models ****************************
 class Tag(BaseModel):
@@ -27,8 +31,9 @@ class PostBase(BaseModel):
     title: str
     content: str
     tags: Optional[List[Tag]] = Field(default_factory=list)
-    author: Optional[Author] = None
+    user: Optional[UserPublic] = None
     image_url: Optional[str] = None
+    category: Optional[CategoryPublic] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -48,9 +53,8 @@ class PostCreate(BaseModel):
         description="The content of the post, must be at least 10 characters",
         examples=["Este es el contenido de mi primer post con FastAPI"],
     )
-
+    category_id: Optional[int] = None
     tags: Optional[List[Tag]] = Field(default_factory=list)
-    # author: Optional[Author] = None
 
     # Para recibir datos de un formulario multipart/form-data en vez de JSON, se define un método de clase que utiliza Form() para cada campo
     @classmethod
@@ -58,10 +62,13 @@ class PostCreate(BaseModel):
         cls,
         title: Annotated[str, Form(min_length=3)],
         content: Annotated[str, Form(min_length=10)],
+        category_id: Annotated[int, Form(ge=1)],
         tags: Annotated[Optional[List[str]], Form()] = None,
     ):
         tag_objects = [Tag(name=tag) for tag in (tags or [])]
-        return cls(title=title, content=content, tags=tag_objects)
+        return cls(
+            title=title, content=content, category_id=category_id, tags=tag_objects
+        )
 
     @field_validator("title")
     @classmethod
@@ -83,6 +90,7 @@ class PostUpdate(BaseModel):
         min_length=10,
         description="The content of the post, must be at least 10 characters",
     )
+    category_id: Optional[int] = None
 
 
 class PostPublic(PostBase):

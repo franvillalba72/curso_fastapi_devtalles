@@ -1,12 +1,13 @@
+from concurrent.interpreters import get_current
 from locale import normalize
 from math import ceil
 from typing import List, Optional, Tuple
 
-from fastapi import HTTPException, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
-from app.models.author import AuthorORM
+from app.core.security import get_current_user
 from app.models.post import PostORM
 from app.models.tag import TagORM
 from app.models.user import UserORM
@@ -61,24 +62,12 @@ class PostRepository:
 
         post_list = (
             select(PostORM)
-            .options(selectinload(PostORM.tags), joinedload(PostORM.author))
+            .options(selectinload(PostORM.tags), joinedload(PostORM.user))
             .where(PostORM.tags.any(func.lower(TagORM.name).in_(normalized_tags)))
             .order_by(PostORM.id.asc())
         )
 
         return self.db.execute(post_list).scalars().all()
-
-    def ensure_author(self, name: str, email: str) -> AuthorORM:
-        author_obj = self.db.execute(
-            select(AuthorORM).where(func.lower(AuthorORM.email) == email.lower())
-        ).scalar_one_or_none()
-
-        if not author_obj:
-            author_obj = AuthorORM(name=name, email=email)
-            self.db.add(author_obj)
-            self.db.flush()  # Ensure the author gets an ID before committing
-
-        return author_obj
 
     def ensure_tag(self, tag: str) -> TagORM:
         normalized_tag = tag.strip().lower()
@@ -97,14 +86,11 @@ class PostRepository:
         self,
         title: str,
         content: str,
-        author: Optional[UserORM],
         tags: List[dict],
         image_url: Optional[str],
+        category_id: Optional[int],
+        author: UserORM = Depends(get_current_user),
     ) -> PostORM:
-        author_obj = (
-            self.ensure_author(author.full_name, author.email) if author else None
-        )
-
         tag_objs = []
         names = (
             tags[0]["name"].split(",") if "," in tags[0]["name"] else [tags[0]["name"]]
@@ -116,8 +102,9 @@ class PostRepository:
             title=title,
             content=content,
             image_url=image_url,
-            author=author_obj,
+            user=author,
             tags=tag_objs,
+            category_id=category_id,
         )
 
         self.db.add(new_post)

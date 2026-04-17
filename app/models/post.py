@@ -4,14 +4,12 @@ from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
+from app.models import category
 
 if TYPE_CHECKING:
-    from .author import (
-        AuthorORM,
-    )  # Importación condicional para evitar problemas de importación circular
-    from .tag import (
-        TagORM,
-    )  # Importación condicional para evitar problemas de importación circular
+    from .user import UserORM
+    from .tag import TagORM
+    from .category import CategoryORM
 
 
 post_tags = Table(
@@ -38,11 +36,16 @@ class PostORM(Base):
         DateTime, nullable=False, default=datetime.utcnow
     )
 
-    author_id: Mapped[Optional[int]] = mapped_column(
-        ForeignKey("authors.id"), nullable=True
+    user_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
     )
-    # Relaciones
-    author: Mapped[Optional["AuthorORM"]] = relationship(back_populates="posts")
+    user: Mapped[Optional["UserORM"]] = relationship(back_populates="posts")
+
+    category_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+    )
+    category = relationship("CategoryORM", back_populates="posts")
+
     tags: Mapped[List["TagORM"]] = relationship(
         secondary=post_tags,
         back_populates="posts",

@@ -1,0 +1,26 @@
+from typing import TYPE_CHECKING, List
+
+from sqlalchemy import Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.db import Base
+
+if TYPE_CHECKING:
+    from .post import (
+        PostORM,
+    )  # Importación condicional para evitar problemas de importación circular
+
+
+class CategoryORM(Base):
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    name: Mapped[str] = mapped_column(String(60), unique=True, index=True)
+    slug: Mapped[str] = mapped_column(String(60), unique=True, index=True)
+
+    posts = relationship(
+        "PostORM",
+        back_populates="category",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
