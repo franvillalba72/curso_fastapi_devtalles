@@ -17,7 +17,13 @@ MEDIA_DIR = "app/media"
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Mini Blog", version="1.0")
+    app = FastAPI(
+        title="Mini Blog",
+        version="1.0",
+        swagger_ui_parameters={
+            "persistAuthorization": True
+        },  # Mantiene el token de autenticación en Swagger UI después de recargar la página, para facilitar las pruebas de endpoints protegidos sin tener que volver a autenticarse cada vez.
+    )
 
     # Solo desarrollo, en producción se usaría Alembic para migraciones
     Base.metadata.create_all(bind=engine)

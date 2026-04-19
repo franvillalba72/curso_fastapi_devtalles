@@ -127,6 +127,33 @@ def get_post(
         return PostSummary.model_validate(post, from_attributes=True)
 
 
+@router.get(
+    "/post/{slug}",
+    response_model=Union[PostPublic, PostSummary],
+    response_description="Post encontrado",
+)
+def get_post_by_slug(
+    slug: str = Path(
+        ..., title="Post Slug", description="The slug of the post to retrieve"
+    ),
+    include_content: bool = Query(
+        default=True, description="Include post content in the response"
+    ),
+    db: Session = Depends(get_db),
+):
+    post = PostRepository(db).get_by_slug(slug)
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Post not found"
+        )
+
+    if include_content:
+        return PostPublic.model_validate(post, from_attributes=True)
+    else:
+        return PostSummary.model_validate(post, from_attributes=True)
+
+
 @router.post(
     "/",
     response_model=PostPublic,

@@ -11,6 +11,7 @@ from app.core.security import get_current_user
 from app.models.post import PostORM
 from app.models.tag import TagORM
 from app.models.user import UserORM
+from app.utils.slugify_utils import ensure_unique_slug
 
 
 class PostRepository:
@@ -18,8 +19,12 @@ class PostRepository:
         self.db = db
 
     def get(self, post_id: int) -> Optional[PostORM]:
-        post_find = select(PostORM).where(PostORM.id == post_id)
-        return self.db.execute(post_find).scalar_one_or_none()
+        query = select(PostORM).where(PostORM.id == post_id)
+        return self.db.execute(query).scalar_one_or_none()
+
+    def get_by_slug(self, slug: str) -> Optional[PostORM]:
+        query = select(PostORM).where(PostORM.slug == slug)
+        return self.db.execute(query).scalar_one_or_none()
 
     def search(
         self,
@@ -97,9 +102,11 @@ class PostRepository:
         )
         for name in names:
             tag_objs.append(self.ensure_tag(name.strip()))
+        slug = ensure_unique_slug(self.db, title)
 
         new_post = PostORM(
             title=title,
+            slug=slug,
             content=content,
             image_url=image_url,
             user=author,
@@ -115,7 +122,8 @@ class PostRepository:
     def update_post(self, post: PostORM, updates: dict) -> PostORM:
         for key, value in updates.items():
             setattr(post, key, value)
-
+        if "title" in updates:
+            post.slug = ensure_unique_slug(self.db, updates["title"])
         return post
 
     def delete_post(self, post: PostORM) -> None:
