@@ -10,6 +10,7 @@ from app.api.v1.uploads.router import router as upload_router
 from app.api.v1.tags.router import router as tags_router
 from app.api.v1.categories.router import router as categories_router
 from app.core.db import Base, engine
+from app.core.middleware import register_middleware
 
 load_dotenv()
 
@@ -27,6 +28,9 @@ def create_app() -> FastAPI:
 
     # Solo desarrollo, en producción se usaría Alembic para migraciones
     Base.metadata.create_all(bind=engine)
+
+    # Registrar middleware personalizado
+    register_middleware(app)
 
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(upload_router, prefix="/api/v1")
